@@ -26,8 +26,8 @@ cat > .env << EOF
 DOCKER_REGISTRY=$DOCKER_REGISTRY
 IMAGE_TAG=$IMAGE_TAG
 MONGO_ROOT_USERNAME=admin
-MONGO_ROOT_PASSWORD=$(openssl rand -base64 32)
-FRONTEND_URL=http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+MONGO_ROOT_PASSWORD=password123
+FRONTEND_URL=http://15.206.93.46:3000
 EOF
 
 echo "📦 Pulling latest images..."
@@ -81,7 +81,7 @@ done
 
 # Check frontend
 for i in {1..10}; do
-    if curl -f http://localhost:80 > /dev/null 2>&1; then
+    if curl -f http://localhost:3000 > /dev/null 2>&1; then
         echo "✅ Frontend is healthy"
         break
     fi
@@ -105,5 +105,5 @@ find $BACKUP_DIR -name "mongodb-backup-*.gz" -mtime +7 -delete || true
 
 echo "✅ Deployment completed successfully!"
 echo "🌐 Application is available at:"
-echo "   Frontend: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
-echo "   Backend API: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):5000"
+echo "   Frontend: http://15.206.93.46:3000"
+echo "   Backend API: http://15.206.93.46:5000"

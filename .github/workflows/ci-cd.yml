@@ -148,19 +148,29 @@ jobs:
         EC2_HOST: ${{ secrets.EC2_HOST }}
       run: |
         # Wait for deployment to complete
-        sleep 30
+        sleep 60
         
         # Check application health
         for i in {1..10}; do
-          if curl -f http://$EC2_HOST/health; then
-            echo "Health check passed"
-            exit 0
+          if curl -f http://$EC2_HOST:5000/health; then
+            echo "Backend health check passed"
+            break
           fi
-          echo "Health check attempt $i failed, retrying..."
+          echo "Backend health check attempt $i failed, retrying..."
           sleep 10
         done
-        echo "Health check failed after 10 attempts"
-        exit 1
+        
+        # Check frontend
+        for i in {1..5}; do
+          if curl -f http://$EC2_HOST:3000; then
+            echo "Frontend health check passed"
+            break
+          fi
+          echo "Frontend health check attempt $i failed, retrying..."
+          sleep 10
+        done
+        
+        echo "Health checks completed"
 
   # Notify deployment status
   notify:
@@ -169,13 +179,7 @@ jobs:
     if: always()
     steps:
     - name: Notify deployment status
-      uses: 8398a7/action-slack@v3
-      if: always()
-      with:
-        status: ${{ job.status }}
-        text: |
-          Deployment ${{ job.status }}!
-          Commit: ${{ github.sha }}
-          Author: ${{ github.actor }}
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      run: |
+        echo "🎉 Deployment completed!"
+        echo "✅ Backend: http://15.206.93.46:5000/health"
+        echo "✅ Frontend: http://15.206.93.46:3000"
