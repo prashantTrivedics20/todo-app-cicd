@@ -1,0 +1,91 @@
+name: Simple Deploy to EC2
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to EC2
+      env:
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+        EC2_USER: ${{ secrets.EC2_USER }}
+        EC2_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+      run: |
+        # Create SSH key file
+        echo "$EC2_KEY" > ec2_key.pem
+        chmod 600 ec2_key.pem
+        
+        # Copy all files to EC2
+        scp -i ec2_key.pem -o StrictHostKeyChecking=no -r \
+          . $EC2_USER@$EC2_HOST:/home/$EC2_USER/todo-app/
+        
+        # Setup and deploy on EC2
+        ssh -i ec2_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
+          cd ~/todo-app
+          
+          # Install Docker if not installed
+          if ! command -v docker &> /dev/null; then
+            echo "Installing Docker..."
+            curl -fsSL https://get.docker.com -o get-docker.sh
+            sudo sh get-docker.sh
+            sudo usermod -aG docker ubuntu
+          fi
+          
+          # Install Docker Compose if not installed
+          if ! command -v docker-compose &> /dev/null; then
+            echo "Installing Docker Compose..."
+            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+          fi
+          
+          # Stop existing containers
+          docker-compose -f docker-compose.dev.yml down || true
+          
+          # Build and start new containers
+          echo "Building and starting containers..."
+          docker-compose -f docker-compose.dev.yml up --build -d
+          
+          # Wait for services to start
+          echo "Waiting for services to start..."
+          sleep 30
+          
+          # Check container status
+          echo "Container status:"
+          docker ps
+          
+          # Check health
+          echo "Health checks:"
+          curl -f http://localhost:5000/health || echo "Backend not ready yet"
+          curl -f http://localhost:3000 || echo "Frontend not ready yet"
+          
+          echo "Deployment completed!"
+          echo "Access your app at: http://$EC2_HOST:3000"
+        EOF
+        
+        # Cleanup
+        rm ec2_key.pem
+
+    - name: Health Check
+      env:
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+      run: |
+        echo "Waiting for deployment to stabilize..."
+        sleep 60
+        
+        echo "Final health check:"
+        curl -f http://$EC2_HOST:5000/health || echo "Backend health check failed"
+        curl -f http://$EC2_HOST:3000 || echo "Frontend health check failed"
+        
+        echo "Deployment process completed!"
+        echo "Your Todo App should be available at: http://$EC2_HOST:3000"
