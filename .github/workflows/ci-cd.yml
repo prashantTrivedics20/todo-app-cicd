@@ -134,14 +134,21 @@ jobs:
         chmod 600 ec2_key.pem
         
         # Copy deployment files to EC2
+        ssh -i ec2_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST \
+          "mkdir -p /home/$EC2_USER/todo-app"
+        
         scp -i ec2_key.pem -o StrictHostKeyChecking=no \
           docker-compose.prod.yml \
           scripts/deploy.sh \
-          $EC2_USER@$EC2_HOST:/home/$EC2_USER/
+          $EC2_USER@$EC2_HOST:/home/$EC2_USER/todo-app/
+        
+        # Verify the file was copied correctly
+        ssh -i ec2_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST \
+          "cd /home/$EC2_USER/todo-app && echo 'Verifying docker-compose.prod.yml:' && head -20 docker-compose.prod.yml"
         
         # Execute deployment script on EC2
         ssh -i ec2_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST \
-          "chmod +x deploy.sh && ./deploy.sh $DOCKER_REGISTRY $IMAGE_TAG"
+          "cd /home/$EC2_USER/todo-app && chmod +x deploy.sh && ./deploy.sh $DOCKER_REGISTRY $IMAGE_TAG"
         
         # Cleanup
         rm ec2_key.pem

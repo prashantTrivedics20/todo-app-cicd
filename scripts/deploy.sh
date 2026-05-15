@@ -15,11 +15,13 @@ echo "Registry: $DOCKER_REGISTRY"
 echo "Image Tag: $IMAGE_TAG"
 
 # Create directories
-mkdir -p $APP_DIR
 mkdir -p $BACKUP_DIR
 
-# Navigate to app directory
-cd $APP_DIR
+# Remove any old docker-compose files to avoid conflicts
+rm -f docker-compose*.yml || true
+
+# Wait for new files to be copied
+sleep 2
 
 # Create environment file
 cat > .env << EOF
