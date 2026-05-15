@@ -16,5 +16,10 @@ COPY . .
 # Expose port
 EXPOSE 3000
 
+# Enable hot reload
+ENV CHOKIDAR_USEPOLLING=true
+ENV WATCHPACK_POLLING=true
+ENV FAST_REFRESH=true
+
 # Start development server
 CMD ["npm", "start"]
