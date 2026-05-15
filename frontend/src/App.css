@@ -30,7 +30,7 @@ body {
 
 /* Header Styles */
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
   color: white;
   padding: 1rem 2rem;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -82,7 +82,7 @@ body {
 
 .todo-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #ff6b35;
 }
 
 .btn {
@@ -99,13 +99,13 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
   color: white;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
 }
 
 .btn-secondary {
@@ -146,13 +146,13 @@ body {
 }
 
 .filter-btn.active {
-  background: #667eea;
+  background: #ff6b35;
   color: white;
-  border-color: #667eea;
+  border-color: #ff6b35;
 }
 
 .filter-btn:hover {
-  border-color: #667eea;
+  border-color: #ff6b35;
 }
 
 /* Todo Items */
@@ -339,7 +339,7 @@ body {
 
 .todo-textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #ff6b35;
 }
 
 .todo-select {
@@ -355,7 +355,7 @@ body {
 
 .todo-select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #ff6b35;
 }
 
 .form-footer {
@@ -416,7 +416,7 @@ body {
 
 /* App Footer Styles */
 .app-footer {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
   color: white;
   padding: 15px 20px;
   text-align: center;
