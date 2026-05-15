@@ -112,7 +112,13 @@ jobs:
     - name: Build and push frontend image
       run: |
         cd frontend
-        docker build -t ${{ env.DOCKER_REGISTRY }}/todo-frontend:latest .
+        echo "📦 Building frontend image..."
+        echo "Current directory: $(pwd)"
+        echo "Files in directory:"
+        ls -la
+        
+        # Build image with verbose output
+        docker build -t ${{ env.DOCKER_REGISTRY }}/todo-frontend:latest . --no-cache
         docker tag ${{ env.DOCKER_REGISTRY }}/todo-frontend:latest ${{ env.DOCKER_REGISTRY }}/todo-frontend:${{ github.sha }}
         
         # Push with retry
