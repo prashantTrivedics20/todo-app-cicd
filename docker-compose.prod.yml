@@ -14,7 +14,6 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_prod_data:/data/db
-      - ./docker/mongodb/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     networks:
       - todo-network
     logging:

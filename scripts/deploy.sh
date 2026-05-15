@@ -46,7 +46,10 @@ fi
 
 # Stop existing containers
 echo "🛑 Stopping existing containers..."
-docker-compose -f docker-compose.prod.yml down || true
+docker-compose -f docker-compose.prod.yml down --remove-orphans || true
+
+# Clean up any dangling containers
+docker container prune -f || true
 
 # Remove old images (keep last 3)
 echo "🧹 Cleaning up old images..."
@@ -57,7 +60,22 @@ docker images $DOCKER_REGISTRY/todo-frontend --format "table {{.Tag}}\t{{.ID}}" 
 
 # Start new containers
 echo "🚀 Starting new containers..."
-docker-compose -f docker-compose.prod.yml up -d
+echo "Current directory: $(pwd)"
+echo "Files in directory:"
+ls -la
+
+# Check if docker-compose.prod.yml exists
+if [ ! -f "docker-compose.prod.yml" ]; then
+    echo "❌ docker-compose.prod.yml not found!"
+    exit 1
+fi
+
+# Show the environment file
+echo "Environment variables:"
+cat .env
+
+# Start containers with verbose output
+docker-compose -f docker-compose.prod.yml up -d --remove-orphans
 
 # Wait for services to be ready
 echo "⏳ Waiting for services to start..."
