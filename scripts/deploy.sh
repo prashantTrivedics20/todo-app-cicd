@@ -44,12 +44,18 @@ if docker ps -q -f name=todo-mongodb-prod > /dev/null; then
     echo "Backup created: $BACKUP_FILE"
 fi
 
-# Stop existing containers
-echo "🛑 Stopping existing containers..."
-docker-compose -f docker-compose.prod.yml down --remove-orphans || true
+# Stop ALL containers that might be related to our app
+echo "🛑 Stopping ALL related containers..."
+docker stop $(docker ps -q --filter "name=todo-") 2>/dev/null || true
+docker rm $(docker ps -aq --filter "name=todo-") 2>/dev/null || true
 
-# Clean up any dangling containers
+# Remove any networks
+docker network rm todo-app_todo-network 2>/dev/null || true
+docker network rm todoapp_todo-network 2>/dev/null || true
+
+# Clean up any dangling containers and networks
 docker container prune -f || true
+docker network prune -f || true
 
 # Remove old images (keep last 3)
 echo "🧹 Cleaning up old images..."
@@ -70,12 +76,16 @@ if [ ! -f "docker-compose.prod.yml" ]; then
     exit 1
 fi
 
+# Show the docker-compose file content for debugging
+echo "Docker Compose file content:"
+cat docker-compose.prod.yml
+
 # Show the environment file
 echo "Environment variables:"
 cat .env
 
 # Start containers with verbose output
-docker-compose -f docker-compose.prod.yml up -d --remove-orphans
+docker-compose -f docker-compose.prod.yml -p todo-app up -d --remove-orphans
 
 # Wait for services to be ready
 echo "⏳ Waiting for services to start..."
@@ -112,11 +122,11 @@ done
 
 # Show container status
 echo "📊 Container status:"
-docker-compose -f docker-compose.prod.yml ps
+docker-compose -f docker-compose.prod.yml -p todo-app ps
 
 # Show logs for debugging
 echo "📝 Recent logs:"
-docker-compose -f docker-compose.prod.yml logs --tail=20
+docker-compose -f docker-compose.prod.yml -p todo-app logs --tail=20
 
 # Cleanup old backups (keep last 7 days)
 find $BACKUP_DIR -name "mongodb-backup-*.gz" -mtime +7 -delete || true
