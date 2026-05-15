@@ -2,6 +2,18 @@
 
 A full-stack todo application with automated CI/CD deployment to AWS EC2.
 
+## 🚀 Live Application
+- **Frontend**: http://15.206.93.46:3000
+- **Backend API**: http://15.206.93.46:5000  
+- **Health Check**: http://15.206.93.46:5000/health
+
+## ✨ Latest Updates (v2.1.0)
+- ✅ Added version indicator in footer
+- ✅ Enhanced health endpoint with version info  
+- ✅ Improved UI with build timestamp
+- ✅ Complete CI/CD pipeline documentation
+- ✅ Automated deployment working perfectly
+
 ## 🚀 Features
 
 - **Frontend**: Modern React.js application with responsive design

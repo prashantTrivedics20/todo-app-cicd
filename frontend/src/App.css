@@ -407,4 +407,32 @@ body {
   .form-footer {
     flex-direction: column;
   }
+  
+  .version-info {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+
+/* App Footer Styles */
+.app-footer {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px 20px;
+  text-align: center;
+  margin-top: auto;
+}
+
+.version-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-size: 14px;
+}
+
+.build-time {
+  opacity: 0.8;
+  font-style: italic;
 }

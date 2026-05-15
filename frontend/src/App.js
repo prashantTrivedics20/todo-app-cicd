@@ -27,6 +27,12 @@ function App() {
               <Route path="/" element={<TodoList />} />
             </Routes>
           </main>
+          <footer className="app-footer">
+            <div className="version-info">
+              <span>Todo App v2.1 | CI/CD Pipeline Active ✅</span>
+              <span className="build-time">Last Updated: {new Date().toLocaleDateString()}</span>
+            </div>
+          </footer>
           <Toaster 
             position="top-right"
             toastOptions={{
