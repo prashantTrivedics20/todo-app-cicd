@@ -7,11 +7,15 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --production
+# Install dependencies (including dev dependencies for build)
+RUN npm ci
 
 # Copy source code
 COPY . .
+
+# Set production environment variables
+ENV REACT_APP_API_URL=http://15.206.93.46:5000/api
+ENV NODE_ENV=production
 
 # Build the application
 RUN npm run build

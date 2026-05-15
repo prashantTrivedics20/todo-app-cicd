@@ -115,12 +115,14 @@ done
 
 # Check frontend
 for i in {1..10}; do
-    if curl -f http://localhost:3000 > /dev/null 2>&1; then
+    if wget --no-verbose --tries=1 --spider http://localhost:3000 > /dev/null 2>&1; then
         echo "✅ Frontend is healthy"
         break
     fi
     if [ $i -eq 10 ]; then
         echo "❌ Frontend health check failed"
+        echo "Checking if nginx is running..."
+        docker logs todo-frontend-prod --tail=20
         exit 1
     fi
     sleep 5
