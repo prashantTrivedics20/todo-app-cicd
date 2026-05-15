@@ -43,12 +43,12 @@ app.use('/api/todos', todoRoutes);
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
-    version: '2.2.0',
-    theme: 'Orange Theme 🧡',
+    version: '2.3.0',
+    theme: 'Green Theme 💚',
     environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    message: 'Todo API is running smoothly with Orange Theme! 🚀'
+    message: 'Todo API is running smoothly with Green Theme! 🌱'
   });
 });
 

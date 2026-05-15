@@ -29,7 +29,7 @@ function App() {
           </main>
           <footer className="app-footer">
             <div className="version-info">
-              <span>Todo App v2.2 | Orange Theme Active 🧡</span>
+              <span>Todo App v2.3 | Green Theme Active 💚</span>
               <span className="build-time">Last Updated: {new Date().toLocaleDateString()}</span>
             </div>
           </footer>
