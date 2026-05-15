@@ -1,0 +1,232 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18'
+  DOCKER_REGISTRY: 'docker.io'  # Use Docker Hub
+  AWS_REGION: 'us-east-1'
+
+jobs:
+  # Test and Build Jobs
+  test-backend:
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password123
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+
+    - name: Install backend dependencies
+      working-directory: ./backend
+      run: npm ci
+
+    - name: Run backend tests
+      working-directory: ./backend
+      run: npm test
+      env:
+        MONGODB_URI: mongodb://admin:password123@localhost:27017/todoapp_test?authSource=admin
+        NODE_ENV: test
+
+    - name: Run backend linting
+      working-directory: ./backend
+      run: npm run lint || true
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install frontend dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: Run frontend tests
+      working-directory: ./frontend
+      run: npm test -- --coverage --watchAll=false
+
+    - name: Build frontend
+      working-directory: ./frontend
+      run: npm run build
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-build
+        path: frontend/build/
+
+  # Security Scanning
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  # Build Docker Images
+  build-images:
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.DOCKER_REGISTRY }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        file: ./backend/Dockerfile
+        push: true
+        tags: |
+          ${{ env.DOCKER_REGISTRY }}/todo-backend:latest
+          ${{ env.DOCKER_REGISTRY }}/todo-backend:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        file: ./frontend/Dockerfile
+        push: true
+        tags: |
+          ${{ env.DOCKER_REGISTRY }}/todo-frontend:latest
+          ${{ env.DOCKER_REGISTRY }}/todo-frontend:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # Deploy to AWS EC2
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build-images, security-scan]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Deploy to EC2
+      env:
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+        EC2_USER: ${{ secrets.EC2_USER }}
+        EC2_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+        DOCKER_REGISTRY: ${{ env.DOCKER_REGISTRY }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Create SSH key file
+        echo "$EC2_KEY" > ec2_key.pem
+        chmod 600 ec2_key.pem
+        
+        # Copy deployment files to EC2
+        scp -i ec2_key.pem -o StrictHostKeyChecking=no \
+          docker-compose.prod.yml \
+          scripts/deploy.sh \
+          $EC2_USER@$EC2_HOST:/home/$EC2_USER/
+        
+        # Execute deployment script on EC2
+        ssh -i ec2_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST \
+          "chmod +x deploy.sh && ./deploy.sh $DOCKER_REGISTRY $IMAGE_TAG"
+        
+        # Cleanup
+        rm ec2_key.pem
+
+    - name: Health Check
+      env:
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+      run: |
+        # Wait for deployment to complete
+        sleep 30
+        
+        # Check application health
+        for i in {1..10}; do
+          if curl -f http://$EC2_HOST/health; then
+            echo "Health check passed"
+            exit 0
+          fi
+          echo "Health check attempt $i failed, retrying..."
+          sleep 10
+        done
+        echo "Health check failed after 10 attempts"
+        exit 1
+
+  # Notify deployment status
+  notify:
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: always()
+    steps:
+    - name: Notify deployment status
+      uses: 8398a7/action-slack@v3
+      if: always()
+      with:
+        status: ${{ job.status }}
+        text: |
+          Deployment ${{ job.status }}!
+          Commit: ${{ github.sha }}
+          Author: ${{ github.actor }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
