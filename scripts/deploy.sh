@@ -17,11 +17,24 @@ echo "Image Tag: $IMAGE_TAG"
 # Create directories
 mkdir -p $BACKUP_DIR
 
-# Remove any old docker-compose files to avoid conflicts
-rm -f docker-compose*.yml || true
+# Check current directory and files
+echo "Current working directory: $(pwd)"
+echo "Files in current directory:"
+ls -la
 
-# Wait for new files to be copied
-sleep 2
+# Look for docker-compose files
+echo "Looking for docker-compose files:"
+find . -name "docker-compose*.yml" -type f 2>/dev/null || true
+
+# Check if docker-compose.prod.yml exists
+if [ ! -f "docker-compose.prod.yml" ]; then
+    echo "❌ docker-compose.prod.yml not found!"
+    echo "Searching for the file in common locations:"
+    find /home/$(whoami) -name "docker-compose.prod.yml" -type f 2>/dev/null || true
+    exit 1
+fi
+
+echo "✅ Found docker-compose.prod.yml"
 
 # Create environment file
 cat > .env << EOF
@@ -68,15 +81,6 @@ docker images $DOCKER_REGISTRY/todo-frontend --format "table {{.Tag}}\t{{.ID}}" 
 
 # Start new containers
 echo "🚀 Starting new containers..."
-echo "Current directory: $(pwd)"
-echo "Files in directory:"
-ls -la
-
-# Check if docker-compose.prod.yml exists
-if [ ! -f "docker-compose.prod.yml" ]; then
-    echo "❌ docker-compose.prod.yml not found!"
-    exit 1
-fi
 
 # Show the docker-compose file content for debugging
 echo "Docker Compose file content:"
