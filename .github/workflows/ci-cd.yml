@@ -8,7 +8,7 @@ on:
 
 env:
   NODE_VERSION: '18'
-  DOCKER_REGISTRY: 'prashanttrivedics20'  # Your Docker Hub username
+  DOCKER_REGISTRY: 'prashanttrivedi7991'  # Correct Docker Hub username
   AWS_REGION: 'us-east-1'
 
 jobs:
