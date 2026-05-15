@@ -1,0 +1,5 @@
+# Temporarily disabled - use manual deployment
+# name: CI/CD Pipeline
+# on:
+#   push:
+#     branches: [ main ]
